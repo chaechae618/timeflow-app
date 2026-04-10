@@ -1050,30 +1050,12 @@
               </label>
 
               <label class="checkbox-item">
-                <input type="checkbox" id="m_xgb" checked>
-                <div class="checkbox-text">
-                  <div class="checkbox-name">XGBoost</div>
-                  <div class="checkbox-desc">Lag feature 기반 부스팅 모델</div>
-                </div>
-                <span class="model-tag tag-ml">ML</span>
-              </label>
-
-              <label class="checkbox-item">
                 <input type="checkbox" id="m_rf" checked>
                 <div class="checkbox-text">
                   <div class="checkbox-name">Random Forest</div>
                   <div class="checkbox-desc">비선형 패턴에 강한 앙상블 트리 모델</div>
                 </div>
                 <span class="model-tag tag-ml">ML</span>
-              </label>
-
-              <label class="checkbox-item">
-                <input type="checkbox" id="m_nbeats">
-                <div class="checkbox-text">
-                  <div class="checkbox-name">N-BEATS</div>
-                  <div class="checkbox-desc">기저 확장 기반 딥러닝 예측 모델</div>
-                </div>
-                <span class="model-tag tag-dl">DL</span>
               </label>
             </div>
           </div>
@@ -1497,9 +1479,9 @@
       const modelMap = {
         'm_arima':'arima',
         'm_ets':'ets',
-        'm_xgb':'xgb',
+        
         'm_rf':'rf',
-        'm_nbeats':'nbeats'
+        
       };
 
       const selectedModels = Object.entries(modelMap)
