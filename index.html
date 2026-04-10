@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TimeFlow — 시계열 예측 워크스페이스</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-soft: #f7f8fb;
+      --border: #d8dee8;
+      --border-strong: #c3ccd8;
+      --text: #111827;
+      --text-soft: #344054;
+      --text-muted: #475467;
+      --primary: #2563eb;
+      --primary-soft: #eff6ff;
+      --green: #16a34a;
+      --green-soft: #f0fdf4;
+      --yellow: #ca8a04;
+      --yellow-soft: #fefce8;
+      --red: #dc2626;
+      --red-soft: #fef2f2;
+      --purple: #7c3aed;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      overflow-y: auto;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, Pretendard, "Noto Sans KR", Arial, sans-serif;
+    }
+
+    body {
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 20px 20px 32px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: 18px;
+      padding: 16px 20px;
+      position: sticky;
+      top: 12px;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      flex-shrink: 0;
+    }
+
+    .brand-text {
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .brand-sub {
+      font-size: 15px;
+      color: var(--text-soft);
+      margin-top: 2px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 15px;
+      color: var(--text-soft);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .hero {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(4, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .hero-main {
+      padding: 8px 4px;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .hero-title {
+      font-size: 32px;
+      line-height: 1.2;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 10px;
+    }
+
+    .hero-desc {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text-soft);
+      max-width: 760px;
+    }
+
+    .hero-card {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 120px;
+    }
+
+    .hero-card-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .hero-card-value {
+      font-size: 22px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .hero-card-sub {
+      font-size: 15px;
+      color: var(--text-soft);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 96px;
+      align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel, .result-shell, .empty-state {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel-step {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .panel-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 0 0 10px;
+    }
+
+    .panel-desc {
+      font-size: 15px;
+      color: var(--text-soft);
+      margin: 0 0 16px;
+    }
+
+    .upload-zone {
+      border: 1.5px dashed #c7d2fe;
+      background: #fafbff;
+      border-radius: 16px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+
+    .upload-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .upload-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .upload-sub {
+      font-size: 15px;
+      color: var(--text-soft);
+    }
+
+    input[type="file"] { display: none; }
+
+    .control-group { margin-top: 14px; }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .control-val {
+      color: var(--primary);
+      font-weight: 800;
+    }
+
+    select {
+      width: 100%;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      background: white;
+      padding: 0 14px;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+    }
+
+    select:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .checkbox-item:hover {
+      border-color: #cbd5e1;
+      background: var(--surface-soft);
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .checkbox-text {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .checkbox-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .checkbox-desc {
+      font-size: 13px;
+      color: var(--text-soft);
+    }
+
+    .model-tag {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .tag-stat { background: #ecfdf3; color: #15803d; }
+    .tag-ml { background: #fffbeb; color: #a16207; }
+    .tag-dl { background: #f5f3ff; color: #6d28d9; }
+
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      width: 100%;
+      height: 48px;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      background: #cbd5e1;
+      color: #64748b;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      background: #f8fafc;
+    }
+
+    .progress-wrap {
+      display: none;
+      margin-top: 16px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      transition: width 0.3s ease;
+    }
+
+    .diag-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .diag-card {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .diag-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .diag-value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .diag-value.ok { color: var(--green); }
+    .diag-value.warn { color: var(--yellow); }
+    .diag-value.err { color: var(--red); }
+
+    .alert-list {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .alert-item {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      border: 1px solid transparent;
+    }
+
+    .alert-item.info {
+      background: var(--primary-soft);
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+
+    .alert-item.ok {
+      background: var(--green-soft);
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+
+    .alert-item.warn {
+      background: var(--yellow-soft);
+      color: #a16207;
+      border-color: #fde68a;
+    }
+
+    .alert-item.err {
+      background: var(--red-soft);
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .empty-state {
+      padding: 44px 20px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 14px;
+    }
+
+    .empty-title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
+
+    .empty-sub {
+      font-size: 17px;
+      color: var(--text-soft);
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .empty-pills {
+      margin-top: 24px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 15px;
+      color: var(--text-soft);
+    }
+
+    .result-shell {
+      display: none;
+      padding: 20px;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .metric-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .metric-sub {
+      font-size: 15px;
+      color: var(--text-soft);
+    }
+
+    .insight-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .insight-card {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .insight-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 8px;
+    }
+
+    .insight-value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .insight-desc {
+      font-size: 15px;
+      color: var(--text-soft);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text-soft);
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .chart-wrap, .leaderboard, .info-box {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .chart-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .chart-title-main {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .chart-title-sub {
+      font-size: 15px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .chart-badge {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--primary);
+      background: var(--primary-soft);
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      padding: 8px 12px;
+    }
+
+    canvas {
+      width: 100% !important;
+      max-width: 100%;
+    }
+
+    .leaderboard {
+      overflow-x: auto;
+    }
+
+    .lb-header, .lb-row {
+      display: grid;
+      grid-template-columns: 220px 100px 100px 100px 100px 100px 1fr;
+      gap: 10px;
+      align-items: center;
+      min-width: 900px;
+    }
+
+    .lb-header {
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .lb-row {
+      padding: 14px 0;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 15px;
+    }
+
+    .lb-row:last-child { border-bottom: none; }
+
+    .model-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .best-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+
+    .metric-val {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 8px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .decomp-grid, .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .stats-grid.stats-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .stat-item {
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-soft);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .info-box {
+      font-size: 15px;
+      color: var(--text-soft);
+      line-height: 1.65;
+    }
+
+    .info-box strong {
+      color: var(--text);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .forecast-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+    }
+
+    .forecast-table th,
+    .forecast-table td {
+      text-align: left;
+      padding: 12px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 15px;
+    }
+
+    .forecast-table th {
+      font-size: 13px;
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    
+    .hero-main { display:flex; flex-direction:column; justify-content:center; }
+    .hero-title { max-width: 520px; }
+    .hero-card-value { color: var(--text); }
+    .topbar, .hero, .panel, .result-shell, .empty-state, .chart-wrap, .leaderboard, .info-box { background:#fff; }
+    .metric-card, .insight-card, .hero-card, .diag-card, .stat-item { border-color: var(--border); }
+    .metric-label, .insight-label, .hero-card-label, .diag-label, .stat-label { font-weight:700; }
+    .metric-sub, .insight-desc, .chart-title-sub, .panel-desc, .hero-desc, .brand-sub, .upload-sub, .checkbox-desc { line-height: 1.6; }
+    .summary-row .metric-card { min-height: 122px; }
+    .insight-row .insight-card { min-height: 118px; }
+    .tab { color: var(--text-soft); }
+    .tab.active { box-shadow: 0 8px 20px rgba(37,99,235,0.18); }
+    .panel-title, .chart-title-main, .empty-title, .brand-title { color: var(--text); }
+    .status-badge { color: var(--text); }
+    @media (max-width: 960px) {
+      .hero-title { font-size: 28px; }
+      .hero-desc { font-size: 16px; }
+    }
+
+    @media (max-width: 1200px) {
+      .hero-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      .hero-main {
+        grid-column: 1 / -1;
+      }
+      .summary-row,
+      .insight-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .stats-grid.stats-3 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: static;
+        top: auto;
+      }
+      .summary-row,
+      .insight-row,
+      .decomp-grid,
+      .stats-grid,
+      .stats-grid.stats-3 {
+        grid-template-columns: 1fr;
+      }
+      .hero-title {
+        font-size: 28px;
+      }
+      .brand-title {
+        font-size: 22px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 12px 12px 24px;
+      }
+      .topbar {
+        padding: 14px;
+      }
+      .hero {
+        padding: 16px;
+      }
+      .panel, .result-shell, .empty-state, .chart-wrap, .leaderboard, .info-box {
+        padding: 14px;
+      }
+      .hero-title {
+        font-size: 24px;
+      }
+      .panel-title {
+        font-size: 24px;
+      }
+      .empty-title {
+        font-size: 24px;
+      }
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">TF</div>
+        <div class="brand-text">
+          <div class="brand-title">TimeFlow Forecast Workspace</div>
+          <div class="brand-sub">CSV 업로드부터 예측, 검증, 해석까지 한 흐름으로 확인하는 시계열 분석 워크스페이스</div>
+        </div>
+      </div>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span id="statusText">데이터 대기 중</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          <div class="eyebrow">Time Series Forecasting</div>
+          <h1 class="hero-title">데이터를 올리면<br>예측 결과가 바로<br>정리됩니다</h1>
+          <p class="hero-desc">
+            CSV 업로드만으로 핵심 지표, 미래 예측, 모델 비교, 백테스트까지 한 화면에서 빠르게 확인할 수 있습니다.
+          </p>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">분석 흐름</div>
+          <div class="hero-card-value">4 Step</div>
+          <div class="hero-card-sub">업로드부터 해석까지 끊김 없이 진행</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">핵심 지표</div>
+          <div class="hero-card-value">4 KPI</div>
+          <div class="hero-card-sub">오차와 설명력을 상단에서 바로 확인</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">결과 확인</div>
+          <div class="hero-card-value">Summary</div>
+          <div class="hero-card-sub">먼저 요약을 보고 필요한 탭으로 이동</div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-label">사용 방식</div>
+          <div class="hero-card-value">Action</div>
+          <div class="hero-card-sub">설명보다 실행과 결과 확인을 우선 배치</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-step">Step 1</div>
+          <h2 class="panel-title">데이터 업로드</h2>
+          <p class="panel-desc">CSV 파일을 올린 뒤 날짜 컬럼과 값 컬럼을 선택해 분석을 준비하세요.</p>
+
+          <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📊</div>
+            <div class="upload-title">CSV 파일 업로드</div>
+            <div class="upload-sub">드래그 앤 드롭 또는 클릭 업로드</div>
+          </div>
+          <input type="file" id="fileInput" accept=".csv" onchange="handleFile(event)" />
+
+          <div id="columnSelect" style="display:none; margin-top:14px;">
+            <div class="control-group">
+              <div class="control-label">날짜 컬럼</div>
+              <select id="dateCol" onchange="validateSelection()"></select>
+            </div>
+            <div class="control-group">
+              <div class="control-label">값 컬럼</div>
+              <select id="valueCol" onchange="validateSelection()"></select>
+            </div>
+          </div>
+
+          <div id="diagReport" style="display:none;"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-step">Step 2</div>
+          <h2 class="panel-title">분석 설정</h2>
+          <p class="panel-desc">예측 기간, 신뢰구간, 사용할 모델을 정하고 바로 실행할 수 있습니다.</p>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>예측 기간</span>
+              <span class="control-val" id="horizonVal">30</span>
+            </div>
+            <input type="range" id="horizonSlider" min="7" max="180" value="30"
+              oninput="document.getElementById('horizonVal').textContent=this.value">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>신뢰구간</span>
+              <span class="control-val" id="ciVal">90%</span>
+            </div>
+            <input type="range" id="ciSlider" min="50" max="99" value="90"
+              oninput="document.getElementById('ciVal').textContent=this.value+'%'">
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">모델 선택</div>
+            <div class="checkbox-group">
+              <label class="checkbox-item">
+                <input type="checkbox" id="m_arima" checked>
+                <div class="checkbox-text">
+                  <div class="checkbox-name">ARIMA</div>
+                  <div class="checkbox-desc">자동 차분 기반 통계 시계열 모델</div>
+                </div>
+                <span class="model-tag tag-stat">통계</span>
+              </label>
+
+              <label class="checkbox-item">
+                <input type="checkbox" id="m_ets" checked>
+                <div class="checkbox-text">
+                  <div class="checkbox-name">ETS</div>
+                  <div class="checkbox-desc">지수평활 기반 레벨·트렌드·계절성 반영</div>
+                </div>
+                <span class="model-tag tag-stat">통계</span>
+              </label>
+
+              <label class="checkbox-item">
+                <input type="checkbox" id="m_xgb" checked>
+                <div class="checkbox-text">
+                  <div class="checkbox-name">XGBoost</div>
+                  <div class="checkbox-desc">Lag feature 기반 부스팅 모델</div>
+                </div>
+                <span class="model-tag tag-ml">ML</span>
+              </label>
+
+              <label class="checkbox-item">
+                <input type="checkbox" id="m_rf" checked>
+                <div class="checkbox-text">
+                  <div class="checkbox-name">Random Forest</div>
+                  <div class="checkbox-desc">비선형 패턴에 강한 앙상블 트리 모델</div>
+                </div>
+                <span class="model-tag tag-ml">ML</span>
+              </label>
+
+              <label class="checkbox-item">
+                <input type="checkbox" id="m_nbeats">
+                <div class="checkbox-text">
+                  <div class="checkbox-name">N-BEATS</div>
+                  <div class="checkbox-desc">기저 확장 기반 딥러닝 예측 모델</div>
+                </div>
+                <span class="model-tag tag-dl">DL</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="progress-wrap" id="progressWrap">
+            <div class="progress-label">
+              <span id="progressLabel">분석 중...</span>
+              <span id="progressPct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+
+          <div class="action-group">
+            <button class="btn btn-primary" id="runBtn" onclick="runPipeline()" disabled>예측 시작</button>
+            <button class="btn btn-secondary" id="demoBtn" onclick="loadDemo()">데모 데이터 실행</button>
+          </div>
+        </section>
+
+        <section class="panel" id="stlPanel" style="display:none;">
+          <div class="panel-step">Step 3</div>
+          <h2 class="panel-title">데이터 해석 요약</h2>
+          <p class="panel-desc">감지된 주기와 구조적 패턴을 간단히 요약해 보여줍니다.</p>
+          <div id="stlInfo"></div>
+        </section>
+      </aside>
+
+      <main class="content">
+        <section class="empty-state" id="emptyState">
+          <div class="empty-icon">📈</div>
+          <div class="empty-title">CSV를 올리면 이 영역에 결과가 정리됩니다</div>
+          <p class="empty-sub">
+            왼쪽에서 파일과 설정을 고른 뒤 <strong>예측 시작</strong>을 누르면, 오른쪽에서 핵심 KPI, 예측 차트, 모델 비교, 잔차 분석, 백테스트를 순서대로 확인할 수 있습니다.
+          </p>
+          <div class="empty-pills">
+            <span class="pill">자동 진단: 데이터 개수 · 빈도 · 결측치 · 이상치</span>
+            <span class="pill">예측 결과: 실제값 · 피팅값 · 예측값 · 신뢰구간</span>
+            <span class="pill">모델 비교: 개별 모델 성능과 앙상블 성능</span>
+            <span class="pill">해석 지원: STL 분해 · 잔차 분석 · 백테스트</span>
+          </div>
+        </section>
+
+        <section class="result-shell" id="dashboard">
+          <div class="summary-row" id="metricRow"></div>
+          <div class="insight-row" id="insightRow"></div>
+
+          <div class="tabs">
+            <button class="tab active" onclick="switchTab('forecast', this)">예측 결과</button>
+            <button class="tab" onclick="switchTab('leaderboard', this)">모델 비교</button>
+            <button class="tab" onclick="switchTab('decomp', this)">시계열 분해</button>
+            <button class="tab" onclick="switchTab('residuals', this)">잔차 분석</button>
+            <button class="tab" onclick="switchTab('backtest', this)">백테스트</button>
+          </div>
+
+          <div class="section active" id="tab-forecast">
+            <div class="chart-wrap">
+              <div class="chart-title">
+                <div>
+                  <div class="chart-title-main">예측값 vs 실제값</div>
+                  <div class="chart-title-sub">최근 실제값, 피팅값, 미래 예측값과 신뢰구간을 함께 비교합니다.</div>
+                </div>
+                <div class="chart-badge" id="bestModelBadge">앙상블</div>
+              </div>
+              <canvas id="forecastChart" height="320"></canvas>
+            </div>
+
+            <div class="chart-wrap" id="forecastTableWrap" style="display:none;">
+              <div class="chart-title">
+                <div>
+                  <div class="chart-title-main">예측 수치</div>
+                  <div class="chart-title-sub">미래 예측값 상위 구간을 표로 확인합니다.</div>
+                </div>
+              </div>
+              <div id="forecastTableContent"></div>
+            </div>
+          </div>
+
+          <div class="section" id="tab-leaderboard">
+            <div class="info-box">
+              <strong>모델 비교 기준:</strong> 각 모델의 MAE, RMSE, SMAPE, 학습시간을 함께 비교하고,
+              앙상블 결과를 별도로 확인할 수 있습니다.
+            </div>
+
+            <div class="leaderboard" id="leaderboardTable"></div>
+
+            <div class="chart-wrap">
+              <div class="chart-title">
+                <div>
+                  <div class="chart-title-main">모델별 SMAPE 비교</div>
+                  <div class="chart-title-sub">값이 낮을수록 상대적으로 더 안정적인 예측입니다.</div>
+                </div>
+              </div>
+              <canvas id="modelCompareChart" height="240"></canvas>
+            </div>
+          </div>
+
+          <div class="section" id="tab-decomp">
+            <div class="info-box">
+              <strong>STL 분해:</strong> 시계열을 트렌드, 계절성, 잔차로 나눠서 데이터 구조를 해석합니다.
+            </div>
+            <div class="decomp-grid">
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">트렌드 성분</div>
+                    <div class="chart-title-sub">장기 방향성 변화</div>
+                  </div>
+                </div>
+                <canvas id="trendChart" height="180"></canvas>
+              </div>
+
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">계절성 성분</div>
+                    <div class="chart-title-sub">반복되는 주기 패턴</div>
+                  </div>
+                </div>
+                <canvas id="seasonChart" height="180"></canvas>
+              </div>
+
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">잔차 성분</div>
+                    <div class="chart-title-sub">설명되지 않은 변동</div>
+                  </div>
+                </div>
+                <canvas id="residChart" height="180"></canvas>
+              </div>
+
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">트렌드·계절성 강도</div>
+                    <div class="chart-title-sub">구조적 패턴의 상대 강도</div>
+                  </div>
+                </div>
+                <canvas id="seasonStrengthChart" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="section" id="tab-residuals">
+            <div class="info-box">
+              <strong>잔차 분석:</strong> 예측 오차가 특정 패턴을 가지는지 확인합니다. 이상적인 잔차는 평균이 0에 가깝고 자기상관이 적습니다.
+            </div>
+
+            <div class="decomp-grid">
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">잔차 시계열</div>
+                    <div class="chart-title-sub">시간에 따른 예측 오차</div>
+                  </div>
+                </div>
+                <canvas id="residTimeChart" height="180"></canvas>
+              </div>
+
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">잔차 분포</div>
+                    <div class="chart-title-sub">오차의 집중 구간 확인</div>
+                  </div>
+                </div>
+                <canvas id="residHistChart" height="180"></canvas>
+              </div>
+
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">ACF</div>
+                    <div class="chart-title-sub">잔차 자기상관</div>
+                  </div>
+                </div>
+                <canvas id="acfChart" height="180"></canvas>
+              </div>
+
+              <div class="chart-wrap">
+                <div class="chart-title">
+                  <div>
+                    <div class="chart-title-main">PACF</div>
+                    <div class="chart-title-sub">편자기상관</div>
+                  </div>
+                </div>
+                <canvas id="pacfChart" height="180"></canvas>
+              </div>
+            </div>
+
+            <div class="stats-grid stats-3" id="residStats"></div>
+          </div>
+
+          <div class="section" id="tab-backtest">
+            <div class="info-box">
+              <strong>Rolling Origin Backtest:</strong> 여러 시점에서 반복 검증하여 미래 데이터 누수 없이 일반화 성능을 확인합니다.
+            </div>
+
+            <div class="chart-wrap">
+              <div class="chart-title">
+                <div>
+                  <div class="chart-title-main">백테스트 결과</div>
+                  <div class="chart-title-sub">여러 검증 창에서의 예측 추이를 비교합니다.</div>
+                </div>
+              </div>
+              <canvas id="backtestChart" height="300"></canvas>
+            </div>
+
+            <div class="stats-grid stats-3" id="backtestStats"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    let state = {
+      rawData: null,
+      dates: [],
+      values: [],
+      futureDates: [],
+      dateCol: '',
+      valueCol: '',
+      horizon: 30,
+      ci: 90,
+      results: null,
+      charts: {},
+      _acfFromAPI: null,
+      _pacfFromAPI: null,
+    };
+
+    const uploadZone = document.getElementById('uploadZone');
+    uploadZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadZone.classList.add('drag');
+    });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (file) processFile(file);
+    }
+
+    function processFile(file) {
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: (res) => {
+          state.rawData = res.data;
+          showColumnSelect(res.meta.fields || []);
+          setStatus('파일 업로드 완료');
+        }
+      });
+    }
+
+    function showColumnSelect(fields) {
+      const dateS = document.getElementById('dateCol');
+      const valS = document.getElementById('valueCol');
+      dateS.innerHTML = '';
+      valS.innerHTML = '';
+
+      fields.forEach(f => {
+        dateS.innerHTML += `<option value="${f}">${f}</option>`;
+        valS.innerHTML += `<option value="${f}">${f}</option>`;
+      });
+
+      const dateHints = ['date','time','timestamp','날짜','일자','dt','period'];
+      const valHints = ['value','val','sales','count','quantity','revenue','demand','price','수량','매출'];
+
+      let bestDate = fields.find(f => dateHints.some(h => f.toLowerCase().includes(h))) || fields[0];
+      let bestVal = fields.find(f => valHints.some(h => f.toLowerCase().includes(h)))
+        || fields.find(f => f !== bestDate && typeof state.rawData?.[0]?.[f] === 'number')
+        || fields.find(f => f !== bestDate)
+        || fields[0];
+
+      dateS.value = bestDate;
+      valS.value = bestVal;
+
+      document.getElementById('columnSelect').style.display = 'block';
+      validateSelection();
+    }
+
+    function validateSelection() {
+      const dc = document.getElementById('dateCol').value;
+      const vc = document.getElementById('valueCol').value;
+      if (!dc || !vc || dc === vc) return;
+
+      state.dateCol = dc;
+      state.valueCol = vc;
+
+      state.dates = state.rawData.map(r => r[dc]).filter(Boolean);
+      state.values = state.rawData.map(r => parseFloat(r[vc])).filter(v => !isNaN(v));
+
+      if (state.dates.length < 20 || state.values.length < 20) {
+        showDiag(false, '데이터가 20개 미만입니다. 최소 20개 이상 필요합니다.');
+        document.getElementById('runBtn').disabled = true;
+        return;
+      }
+
+      showDiag(true);
+      document.getElementById('runBtn').disabled = false;
+      setStatus('데이터 준비 완료');
+    }
+
+    function showDiag(ok, err = '') {
+      const report = document.getElementById('diagReport');
+      if (!ok) {
+        report.innerHTML = `<div class="alert-list"><div class="alert-item err">${err}</div></div>`;
+        report.style.display = 'block';
+        return;
+      }
+
+      const n = state.values.length;
+      const nullCount = state.rawData.filter(r =>
+        r[state.valueCol] === null || r[state.valueCol] === undefined || isNaN(r[state.valueCol])
+      ).length;
+      const nullPct = (nullCount / Math.max(state.rawData.length, 1) * 100).toFixed(1);
+
+      const sorted = [...state.values].sort((a,b)=>a-b);
+      const q1 = sorted[Math.floor(n * 0.25)];
+      const q3 = sorted[Math.floor(n * 0.75)];
+      const iqr = q3 - q1;
+      const outliers = state.values.filter(v => v < q1 - 1.5 * iqr || v > q3 + 1.5 * iqr).length;
+
+      const mean = state.values.reduce((a,b)=>a+b,0) / n;
+      const std = Math.sqrt(state.values.reduce((a,b)=>a+(b-mean)**2,0) / n);
+
+      let freq = '알 수 없음';
+      if (state.dates.length > 2) {
+        const d0 = new Date(state.dates[0]);
+        const d1 = new Date(state.dates[1]);
+        const diff = Math.round((d1 - d0) / (1000 * 60 * 60));
+        if (diff <= 1) freq = '시간별';
+        else if (diff <= 25) freq = '일별';
+        else if (diff <= 170) freq = '주별';
+        else freq = '월별';
+      }
+
+      report.innerHTML = `
+        <div class="diag-grid">
+          <div class="diag-card">
+            <div class="diag-label">총 행 수</div>
+            <div class="diag-value ok">${n.toLocaleString()}</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">빈도</div>
+            <div class="diag-value ok">${freq}</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">결측치</div>
+            <div class="diag-value ${nullPct>5?'err':nullPct>0?'warn':'ok'}">${nullPct}%</div>
+          </div>
+          <div class="diag-card">
+            <div class="diag-label">이상치</div>
+            <div class="diag-value ${outliers>n*0.05?'err':outliers>0?'warn':'ok'}">${outliers}개</div>
+          </div>
+        </div>
+        <div class="alert-list">
+          <div class="alert-item info">평균 ${mean.toFixed(2)} · 표준편차 ${std.toFixed(2)}</div>
+          <div class="alert-item info">${state.dates[0]} ~ ${state.dates[n-1]}</div>
+          ${nullCount > 0 ? `<div class="alert-item warn">결측치 ${nullCount}개가 있어 전처리 단계에서 보간됩니다.</div>` : ''}
+          ${outliers > 0 ? `<div class="alert-item warn">이상치 ${outliers}개가 있어 IQR 기반으로 클리핑됩니다.</div>` : ''}
+          <div class="alert-item ok">데이터 검증이 완료되었습니다. 아래에서 예측을 시작하세요.</div>
+        </div>
+      `;
+      report.style.display = 'block';
+    }
+
+    function _origDemoData() {
+      const n = 365 * 2;
+      const dates = [], values = [];
+      let d = new Date('2022-01-01');
+      for (let i = 0; i < n; i++) {
+        dates.push(d.toISOString().split('T')[0]);
+        const t = i / n;
+        const trend = 1000 + 800 * t;
+        const year = 250 * Math.sin(2*Math.PI*i/365 - Math.PI/2);
+        const week = 80 * Math.sin(2*Math.PI*i/7);
+        const noise = (Math.random()-0.5)*120;
+        let v = trend + year + week + noise;
+        if (i === 280) v *= 2.2;
+        if (i === 500) v *= 0.4;
+        values.push(Math.max(0, Math.round(v*10)/10));
+        d.setDate(d.getDate()+1);
+      }
+      state.dates = dates;
+      state.values = values;
+      state.dateCol = 'date';
+      state.valueCol = 'value';
+      state.rawData = dates.map((d,i)=>({date:d, value:values[i]}));
+      document.getElementById('columnSelect').style.display = 'none';
+      showDiag(true);
+      document.getElementById('runBtn').disabled = false;
+      setStatus('데모 데이터 준비 완료');
+    }
+
+    function loadDemo() {
+      _origDemoData();
+      setTimeout(() => runPipeline(), 120);
+    }
+
+    async function runPipeline() {
+      if (!state.rawData && !state.dates.length) return;
+
+      const btn = document.getElementById('runBtn');
+      btn.disabled = true;
+
+      const horizon = parseInt(document.getElementById('horizonSlider').value);
+      const ci = parseInt(document.getElementById('ciSlider').value);
+      state.horizon = horizon;
+      state.ci = ci;
+
+      const modelMap = {
+        'm_arima':'arima',
+        'm_ets':'ets',
+        'm_xgb':'xgb',
+        'm_rf':'rf',
+        'm_nbeats':'nbeats'
+      };
+
+      const selectedModels = Object.entries(modelMap)
+        .filter(([id]) => document.getElementById(id)?.checked)
+        .map(([,m]) => m);
+
+      if (selectedModels.length === 0) {
+        alert('최소 1개 이상의 모델을 선택해주세요.');
+        btn.disabled = false;
+        return;
+      }
+
+      showProgress(true);
+      updateProgress(8, '데이터 준비 중...');
+      setStatus('예측 실행 중...');
+
+      try {
+        const csvContent = [
+          [state.dateCol, state.valueCol].join(','),
+          ...state.rawData.map(r => `${r[state.dateCol]},${r[state.valueCol]}`)
+        ].join('\n');
+
+        const csvBlob = new Blob([csvContent], { type: 'text/csv' });
+
+        const formData = new FormData();
+        formData.append('file', csvBlob, 'data.csv');
+        formData.append('date_col', state.dateCol);
+        formData.append('val_col', state.valueCol);
+        formData.append('horizon', horizon);
+        formData.append('ci', ci);
+        formData.append('models', selectedModels.join(','));
+
+        const steps = [
+          [22, '전처리 중...'],
+          [40, '모델 학습 중...'],
+          [62, '앙상블 계산 중...'],
+          [82, '대시보드 준비 중...'],
+        ];
+        let stepIdx = 0;
+        const progInterval = setInterval(() => {
+          if (stepIdx < steps.length) {
+            const [pct, label] = steps[stepIdx++];
+            updateProgress(pct, label);
+          }
+        }, 900);
+
+        const resp = await fetch('/forecast', { method: 'POST', body: formData });
+        clearInterval(progInterval);
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.error || `HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || '알 수 없는 오류');
+
+        updateProgress(95, '결과 렌더링 중...');
+
+        state.dates = data.dates;
+        state.values = data.values;
+        state.futureDates = data.futureDates;
+
+        const ensemble = {
+          pred: data.ensemble.pred,
+          lower: data.ensemble.lower,
+          upper: data.ensemble.upper,
+          fitted: data.ensemble.fitted,
+          residuals: data.ensemble.residuals,
+          mae: data.ensemble.mae,
+          rmse: data.ensemble.rmse,
+          smape: data.ensemble.smape,
+          mape: data.ensemble.mape,
+          r2: data.ensemble.r2,
+          mase: data.ensemble.mase,
+        };
+
+        const modelResults = data.modelResults.map(m => ({
+          name: m.name,
+          smape: m.smape,
+          mae: m.mae,
+          rmse: m.rmse,
+          r2: m.r2,
+          mase: m.mase,
+          color: m.color,
+          fitted: m.fitted,
+          trainTime: m.trainTime,
+        }));
+
+        const stl = {
+          trend: data.stl.trend,
+          seasonal: data.stl.seasonal,
+          residual: data.stl.residual,
+          period: data.stl.period,
+          trendStrength: data.stl.trendStrength,
+          seasonStrength: data.stl.seasonStrength,
+        };
+
+        const backtest = data.backtest;
+
+        state.results = { modelResults, ensemble, stl, backtest, horizon, ci };
+        state._acfFromAPI = data.acf?.vals || null;
+        state._pacfFromAPI = null;
+
+        updateProgress(100, '완료');
+        await sleep(180);
+        showProgress(false);
+
+        renderDashboard();
+        renderSTLInfo(stl);
+        setStatus(`예측 완료 · SMAPE ${ensemble.smape.toFixed(2)}%`);
+        btn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        showProgress(false);
+        btn.disabled = false;
+        setStatus('오류 발생');
+        alert('예측 오류: ' + err.message);
+      }
+    }
+
+    function renderDashboard() {
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+
+      const { modelResults, ensemble, stl, backtest, horizon, ci } = state.results;
+      const sorted = [...modelResults].sort((a,b) => a.smape - b.smape);
+      const best = sorted[0];
+
+      renderMetricCards(ensemble);
+      renderInsights(ensemble, best, stl);
+      renderForecastChart(ensemble, horizon, ci);
+      renderLeaderboard(sorted, ensemble);
+      renderModelCompare(sorted, ensemble);
+      renderDecompCharts(stl);
+      renderResidualCharts(ensemble.residuals, state.values);
+      if (backtest?.length) renderBacktest(backtest);
+      renderForecastTable(ensemble, horizon);
+
+      document.getElementById('bestModelBadge').textContent = `앙상블 · ${modelResults.length}개 모델`;
+    }
+
+    function renderMetricCards(ensemble) {
+      document.getElementById('metricRow').innerHTML = `
+        <div class="metric-card">
+          <div class="metric-label">MAE</div>
+          <div class="metric-value">${ensemble.mae.toFixed(2)}</div>
+          <div class="metric-sub">평균 절대 오차</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">SMAPE</div>
+          <div class="metric-value">${ensemble.smape.toFixed(2)}%</div>
+          <div class="metric-sub">상대 오차 비교 핵심 지표</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">RMSE</div>
+          <div class="metric-value">${ensemble.rmse.toFixed(2)}</div>
+          <div class="metric-sub">큰 오차에 더 민감한 지표</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">R²</div>
+          <div class="metric-value">${Math.max(0, ensemble.r2).toFixed(3)}</div>
+          <div class="metric-sub">설명력 지표</div>
+        </div>
+      `;
+    }
+
+    function renderInsights(ensemble, best, stl) {
+      const seasonLabel = stl.seasonStrength > 0.5 ? '강함' : '약함';
+      const trendLabel = stl.trendStrength > 0.5 ? '뚜렷함' : '약함';
+
+      document.getElementById('insightRow').innerHTML = `
+        <div class="insight-card">
+          <div class="insight-label">최적 개별 모델</div>
+          <div class="insight-value">${best?.name || '-'}</div>
+          <div class="insight-desc">개별 모델 중 가장 낮은 SMAPE를 기록한 모델입니다.</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">구조적 패턴 해석</div>
+          <div class="insight-value">트렌드 ${trendLabel}</div>
+          <div class="insight-desc">계절성은 ${seasonLabel}으로 감지되었습니다.</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">앙상블 해석</div>
+          <div class="insight-value">${ensemble.smape.toFixed(2)}% SMAPE</div>
+          <div class="insight-desc">핵심 결과는 아래 탭에서 상세히 확인할 수 있습니다.</div>
+        </div>
+      `;
+    }
+
+    function renderForecastChart(ensemble, horizon, ci) {
+      destroyChart('forecastChart');
+
+      const n = state.values.length;
+      const showN = Math.min(n, 150);
+      const histDates = state.dates.slice(n - showN);
+      const histVals = state.values.slice(n - showN);
+      const futureDates = state.futureDates?.length
+        ? state.futureDates
+        : generateFutureDatesFallback(horizon);
+
+      const allLabels = [...histDates, ...futureDates];
+
+      const ctx = document.getElementById('forecastChart').getContext('2d');
+      state.charts.forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allLabels,
+          datasets: [
+            {
+              label: '실제값',
+              data: [...histVals, ...new Array(horizon).fill(null)],
+              borderColor: '#2563eb',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 0,
+              tension: 0.28,
+            },
+            {
+              label: '예측값',
+              data: [...new Array(showN).fill(null), ...ensemble.pred],
+              borderColor: '#16a34a',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 0,
+              borderDash: [6,4],
+              tension: 0.28,
+            },
+            {
+              label: '상한',
+              data: [...new Array(showN).fill(null), ...ensemble.upper],
+              borderColor: 'rgba(0,0,0,0)',
+              backgroundColor: 'transparent',
+              pointRadius: 0,
+              fill: '+1',
+            },
+            {
+              label: '하한',
+              data: [...new Array(showN).fill(null), ...ensemble.lower],
+              borderColor: 'rgba(34,197,94,0.30)',
+              backgroundColor: 'rgba(34,197,94,0.10)',
+              pointRadius: 0,
+              fill: false,
+            },
+            {
+              label: '피팅값',
+              data: [...ensemble.fitted.slice(n - showN), ...new Array(horizon).fill(null)],
+              borderColor: 'rgba(124,58,237,0.45)',
+              backgroundColor: 'transparent',
+              borderWidth: 1.5,
+              pointRadius: 0,
+              borderDash: [3,3],
+              tension: 0.28,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#475467',
+                font: { size: 12 },
+                filter: item => !item.text.includes('상한')
+              }
+            },
+            tooltip: {
+              backgroundColor: '#111827',
+              titleColor: '#fff',
+              bodyColor: '#e5e7eb',
+              callbacks: {
+                label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(2) ?? '─'}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#667085', maxTicksLimit: 12 },
+              grid: { color: '#eef2f7' }
+            },
+            y: {
+              ticks: { color: '#667085' },
+              grid: { color: '#eef2f7' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderLeaderboard(sorted, ensemble) {
+      const maxSMAPE = Math.max(...sorted.map(m => m.smape), ensemble.smape);
+
+      const rows = sorted.map((m, i) => {
+        const isBest = i === 0;
+        const barW = Math.max(5, (1 - m.smape / maxSMAPE) * 100);
+        return `
+          <div class="lb-row">
+            <div class="model-name">
+              <span style="color:${m.color}">●</span>
+              <span>${m.name}</span>
+              ${isBest ? `<span class="best-badge">BEST</span>` : ''}
+            </div>
+            <div class="metric-val">${m.mae.toFixed(3)}</div>
+            <div class="metric-val">${m.rmse.toFixed(3)}</div>
+            <div class="metric-val">${m.smape.toFixed(2)}%</div>
+            <div class="metric-val">${(m.mase ?? 0).toFixed(3)}</div>
+            <div class="metric-val">${(m.trainTime ?? 0).toFixed(1)}s</div>
+            <div class="bar-cell">
+              <div class="bar-track">
+                <div class="bar-fill" style="width:${barW}%; background:${m.color};"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const ensBarW = Math.max(5, (1 - ensemble.smape / maxSMAPE) * 100);
+
+      document.getElementById('leaderboardTable').innerHTML = `
+        <div class="lb-header">
+          <div>모델</div>
+          <div>MAE</div>
+          <div>RMSE</div>
+          <div>SMAPE</div>
+          <div>MASE</div>
+          <div>시간</div>
+          <div>상대 성능</div>
+        </div>
+        ${rows}
+        <div class="lb-row">
+          <div class="model-name">
+            <span style="color:#111827">◆</span>
+            <span>앙상블</span>
+            <span class="best-badge">Ensemble</span>
+          </div>
+          <div class="metric-val">${ensemble.mae.toFixed(3)}</div>
+          <div class="metric-val">${ensemble.rmse.toFixed(3)}</div>
+          <div class="metric-val">${ensemble.smape.toFixed(2)}%</div>
+          <div class="metric-val">${(ensemble.mase ?? 0).toFixed(3)}</div>
+          <div class="metric-val">-</div>
+          <div class="bar-cell">
+            <div class="bar-track">
+              <div class="bar-fill" style="width:${ensBarW}%; background:#111827;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderModelCompare(sorted, ensemble) {
+      destroyChart('modelCompareChart');
+      const allModels = [...sorted, { name:'앙상블', smape: ensemble.smape, color:'#111827' }];
+
+      const ctx = document.getElementById('modelCompareChart').getContext('2d');
+      state.charts.modelCompareChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: allModels.map(m => m.name),
+          datasets: [{
+            label: 'SMAPE (%)',
+            data: allModels.map(m => parseFloat(m.smape.toFixed(3))),
+            backgroundColor: allModels.map(m => m.color + '99'),
+            borderColor: allModels.map(m => m.color),
+            borderWidth: 1.4,
+            borderRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#111827',
+              titleColor: '#fff',
+              bodyColor: '#e5e7eb'
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#667085' }, grid: { color: '#eef2f7' } },
+            y: {
+              ticks: { color: '#667085' },
+              grid: { color: '#eef2f7' },
+              title: { display: true, text: 'SMAPE (%)', color: '#667085' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderDecompCharts(stl) {
+      const n = Math.min(state.dates.length, 200);
+      const labels = state.dates.slice(-n);
+
+      makeLineChart('trendChart', labels, stl.trend.slice(-n), '#2563eb', '트렌드');
+      makeLineChart('seasonChart', labels, stl.seasonal.slice(-n), '#16a34a', '계절성');
+      makeLineChart('residChart', labels, stl.residual.slice(-n), '#7c3aed', '잔차');
+
+      destroyChart('seasonStrengthChart');
+      const ctx = document.getElementById('seasonStrengthChart').getContext('2d');
+      state.charts.seasonStrengthChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['트렌드 강도', '계절성 강도'],
+          datasets: [{
+            data: [stl.trendStrength.toFixed(3), stl.seasonStrength.toFixed(3)],
+            backgroundColor: ['rgba(37,99,235,0.35)', 'rgba(22,163,74,0.35)'],
+            borderColor: ['#2563eb', '#16a34a'],
+            borderWidth: 1.4,
+            borderRadius: 8,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { min: 0, max: 1, ticks: { color: '#667085' }, grid: { color: '#eef2f7' } },
+            x: { ticks: { color: '#667085' }, grid: { color: '#eef2f7' } }
+          }
+        }
+      });
+    }
+
+    function renderResidualCharts(residuals, actual) {
+      const n = Math.min(residuals.length, 200);
+      const labels = state.dates.slice(-n);
+      const res = residuals.slice(-n);
+
+      destroyChart('residTimeChart');
+      const ctx1 = document.getElementById('residTimeChart').getContext('2d');
+      state.charts.residTimeChart = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: '잔차',
+            data: res,
+            backgroundColor: res.map(r => r >= 0 ? 'rgba(37,99,235,0.35)' : 'rgba(220,38,38,0.35)'),
+            borderColor: res.map(r => r >= 0 ? '#2563eb' : '#dc2626'),
+            borderWidth: 0.8
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#475467' } } },
+          scales: {
+            x: { ticks: { color: '#667085', maxTicksLimit: 8 }, grid: { color: '#eef2f7' } },
+            y: { ticks: { color: '#667085' }, grid: { color: '#eef2f7' } }
+          }
+        }
+      });
+
+      const bins = 20;
+      const minR = Math.min(...res);
+      const maxR = Math.max(...res);
+      const binW = (maxR - minR) / Math.max(bins, 1) || 1;
+      const hist = new Array(bins).fill(0);
+      res.forEach(r => {
+        const b = Math.min(bins - 1, Math.floor((r - minR) / binW));
+        hist[Math.max(0,b)]++;
+      });
+      const binLabels = Array.from({length: bins}, (_,i)=>(minR+i*binW).toFixed(1));
+
+      destroyChart('residHistChart');
+      const ctx2 = document.getElementById('residHistChart').getContext('2d');
+      state.charts.residHistChart = new Chart(ctx2, {
+        type: 'bar',
+        data: {
+          labels: binLabels,
+          datasets: [{
+            label: '빈도',
+            data: hist,
+            backgroundColor: 'rgba(124,58,237,0.35)',
+            borderColor: '#7c3aed',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#475467' } } },
+          scales: {
+            x: { ticks: { color: '#667085', maxTicksLimit: 8 }, grid: { color: '#eef2f7' } },
+            y: { ticks: { color: '#667085' }, grid: { color: '#eef2f7' } }
+          }
+        }
+      });
+
+      const maxLag = 30;
+      const acfVals = state._acfFromAPI?.length ? state._acfFromAPI.slice(0, maxLag) : computeACF(res, maxLag);
+      const pacfVals = computePACF(res, maxLag);
+      const lagLabels = Array.from({length:maxLag},(_,i)=>i+1);
+      const confBound = 1.96 / Math.sqrt(res.length);
+
+      makeCorrChart('acfChart', lagLabels, acfVals, confBound, '#2563eb', 'ACF');
+      makeCorrChart('pacfChart', lagLabels, pacfVals, confBound, '#16a34a', 'PACF');
+
+      const resMean = mean(res);
+      const resStd = Math.sqrt(variance(res)) || 0;
+      const skew = resStd ? res.reduce((a,b)=>a+(b-resMean)**3,0)/res.length / Math.pow(resStd,3) : 0;
+      const kurt = resStd ? res.reduce((a,b)=>a+(b-resMean)**4,0)/res.length / Math.pow(resStd,4) - 3 : 0;
+      const q = acfVals.slice(0,10).reduce((s,r,k)=>s+r**2/(res.length-k-1),0)*res.length*(res.length+2);
+
+      document.getElementById('residStats').innerHTML = `
+        <div class="stat-item">
+          <div class="stat-label">평균 잔차</div>
+          <div class="stat-value">${resMean.toFixed(4)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">잔차 표준편차</div>
+          <div class="stat-value">${resStd.toFixed(4)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">왜도</div>
+          <div class="stat-value">${skew.toFixed(3)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">첨도</div>
+          <div class="stat-value">${kurt.toFixed(3)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Ljung-Box Q</div>
+          <div class="stat-value">${q.toFixed(2)}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">백색소음 여부</div>
+          <div class="stat-value">${q < 20 ? '통과' : '자기상관 있음'}</div>
+        </div>
+      `;
+    }
+
+    function renderBacktest(windows) {
+      destroyChart('backtestChart');
+      const colors = ['#2563eb','#16a34a','#7c3aed','#ca8a04','#dc2626'];
+
+      const datasets = windows.map((w, i) => ({
+        label: `원점 ${w.cutoffDate}`,
+        data: w.pred.map((p,h) => ({ x: h + 1, y: p })),
+        borderColor: colors[i % colors.length],
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.2,
+      }));
+
+      const ctx = document.getElementById('backtestChart').getContext('2d');
+      state.charts.backtestChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#475467' } } },
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: '예측 단계', color: '#667085' },
+              ticks: { color: '#667085' },
+              grid: { color: '#eef2f7' }
+            },
+            y: {
+              ticks: { color: '#667085' },
+              grid: { color: '#eef2f7' }
+            }
+          }
+        }
+      });
+
+      const avgSMAPE = windows.reduce((a,w)=>a+w.smape,0)/windows.length;
+      const minSMAPE = Math.min(...windows.map(w=>w.smape));
+      const maxSMAPE = Math.max(...windows.map(w=>w.smape));
+
+      document.getElementById('backtestStats').innerHTML = `
+        <div class="stat-item">
+          <div class="stat-label">검증 창 수</div>
+          <div class="stat-value">${windows.length}개</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">평균 SMAPE</div>
+          <div class="stat-value">${avgSMAPE.toFixed(2)}%</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">최소 SMAPE</div>
+          <div class="stat-value">${minSMAPE.toFixed(2)}%</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">최대 SMAPE</div>
+          <div class="stat-value">${maxSMAPE.toFixed(2)}%</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">검증 방식</div>
+          <div class="stat-value">Rolling Origin</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">미래 누수</div>
+          <div class="stat-value">없음</div>
+        </div>
+      `;
+    }
+
+    function renderForecastTable(ensemble, horizon) {
+      const futureDates = state.futureDates?.length ? state.futureDates : generateFutureDatesFallback(horizon);
+      const rows = Array.from({length: Math.min(10, horizon)}, (_, h) => `
+        <tr>
+          <td>${futureDates[h]}</td>
+          <td>${ensemble.pred[h].toFixed(2)}</td>
+          <td>${ensemble.lower[h].toFixed(2)}</td>
+          <td>${ensemble.upper[h].toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('forecastTableContent').innerHTML = `
+        <div class="table-wrap">
+          <table class="forecast-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>예측값</th>
+                <th>하한</th>
+                <th>상한</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+      document.getElementById('forecastTableWrap').style.display = 'block';
+    }
+
+    function renderSTLInfo(stl) {
+      document.getElementById('stlPanel').style.display = 'block';
+      document.getElementById('stlInfo').innerHTML = `
+        <div class="alert-list">
+          <div class="alert-item info">감지된 주기: ${stl.period}</div>
+          <div class="alert-item ${stl.trendStrength > 0.5 ? 'ok' : 'warn'}">
+            트렌드 강도: ${(stl.trendStrength * 100).toFixed(1)}%
+          </div>
+          <div class="alert-item ${stl.seasonStrength > 0.5 ? 'ok' : 'warn'}">
+            계절성 강도: ${(stl.seasonStrength * 100).toFixed(1)}%
+          </div>
+        </div>
+      `;
+    }
+
+    function makeLineChart(id, labels, data, color, label) {
+      destroyChart(id);
+      const ctx = document.getElementById(id).getContext('2d');
+      state.charts[id] = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data,
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.24
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#475467' } } },
+          scales: {
+            x: { ticks: { color: '#667085', maxTicksLimit: 6 }, grid: { color: '#eef2f7' } },
+            y: { ticks: { color: '#667085' }, grid: { color: '#eef2f7' } }
+          }
+        }
+      });
+    }
+
+    function makeCorrChart(id, labels, vals, confBound, color, label) {
+      destroyChart(id);
+      const ctx = document.getElementById(id).getContext('2d');
+      state.charts[id] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label,
+              data: vals,
+              backgroundColor: vals.map(v => Math.abs(v) > confBound ? color + '99' : color + '44'),
+              borderColor: vals.map(v => Math.abs(v) > confBound ? color : color + '66'),
+              borderWidth: 1
+            },
+            {
+              label: '95% CI',
+              data: new Array(labels.length).fill(confBound),
+              type: 'line',
+              borderColor: 'rgba(220,38,38,0.5)',
+              backgroundColor: 'transparent',
+              borderDash: [4,3],
+              pointRadius: 0,
+              borderWidth: 1
+            },
+            {
+              label: '',
+              data: new Array(labels.length).fill(-confBound),
+              type: 'line',
+              borderColor: 'rgba(220,38,38,0.5)',
+              backgroundColor: 'transparent',
+              borderDash: [4,3],
+              pointRadius: 0,
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#475467',
+                filter: item => item.text !== ''
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: '#667085' }, grid: { color: '#eef2f7' } },
+            y: { min: -1, max: 1, ticks: { color: '#667085' }, grid: { color: '#eef2f7' } }
+          }
+        }
+      });
+    }
+
+    function generateFutureDatesFallback(horizon) {
+      const n = state.dates.length;
+      const lastDate = new Date(state.dates[n-1]);
+      const prevDate = new Date(state.dates[n-2]);
+      const diff = lastDate - prevDate;
+      return Array.from({length: horizon}, (_,h) => {
+        const d = new Date(lastDate.getTime() + diff * (h + 1));
+        return d.toISOString().split('T')[0];
+      });
+    }
+
+    function computeACF(res, maxLag) {
+      const n = res.length;
+      const m = mean(res);
+      const centered = res.map(r => r - m);
+      const varN = centered.reduce((a,b)=>a+b*b,0) / n || 1e-10;
+
+      return Array.from({length:maxLag}, (_,k) => {
+        let cov = 0;
+        for (let i = 0; i < n-k-1; i++) cov += centered[i] * centered[i+k+1];
+        return cov / ((n-k-1) * varN);
+      });
+    }
+
+    function computePACF(res, maxLag) {
+      const acf = computeACF(res, maxLag);
+      const pacf = [acf[0]];
+      const phi = [[acf[0]]];
+
+      for (let k = 1; k < maxLag; k++) {
+        const prev = phi[k-1] || [];
+        let num = acf[k];
+        for (let j = 0; j < k; j++) num -= (prev[j] || 0) * acf[k-1-j];
+        let den = 1;
+        for (let j = 0; j < k; j++) den -= (prev[j] || 0) * acf[j];
+        const p = num / (den || 1e-10);
+        pacf.push(p);
+
+        const newPhi = new Array(k + 1).fill(0);
+        for (let j = 0; j < k; j++) newPhi[j] = (prev[j] || 0) - p * (prev[k-1-j] || 0);
+        newPhi[k] = p;
+        phi.push(newPhi);
+      }
+      return pacf;
+    }
+
+    function mean(arr) {
+      return arr.reduce((a,b)=>a+b,0) / Math.max(arr.length, 1);
+    }
+
+    function variance(arr) {
+      const m = mean(arr);
+      return arr.reduce((a,b)=>a+(b-m)**2,0) / Math.max(arr.length, 1);
+    }
+
+    function switchTab(name, el) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      el.classList.add('active');
+    }
+
+    function setStatus(msg) {
+      document.getElementById('statusText').textContent = msg;
+    }
+
+    function showProgress(show) {
+      document.getElementById('progressWrap').style.display = show ? 'block' : 'none';
+    }
+
+    function updateProgress(pct, label) {
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressPct').textContent = pct + '%';
+      document.getElementById('progressLabel').textContent = label;
+    }
+
+    function destroyChart(id) {
+      if (state.charts[id]) {
+        state.charts[id].destroy();
+        delete state.charts[id];
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+  </script>
+</body>
+</html>
